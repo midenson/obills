@@ -1,22 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Base application theme. -->
+    <!-- Base application theme -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+
+        <!-- Prevent white flash when WebView loads -->
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 
+
+    <!-- Main app theme without action bar -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:background">@null</item>
+
+        <!-- This prevents the white flicker -->
+        <item name="android:windowBackground">@color/splash_background</item>
     </style>
 
 
+    <!-- Splash Screen Theme -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+
+        <!-- Full background color -->
+        <item name="android:windowSplashScreenBackground">@color/splash_background</item>
+
+        <!-- Your logo -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash</item>
+
+        <!-- Icon background (optional but cleaner) -->
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/splash_background</item>
+
+        <!-- Theme after splash disappears -->
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+
     </style>
+
 </resources>
