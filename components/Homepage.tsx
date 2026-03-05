@@ -73,13 +73,16 @@ export default function FintechDashboard() {
     if (rawSession) {
       try {
         const session = JSON.parse(rawSession);
+        // Mapping from the user's provided local storage structure
+        const profile = session.user_data || {};
+        
         setUserData({
-          full_name: session.user_data?.fname?.split(" ")[0] || "User",
-          balance: parseFloat(session.user_data?.balance || 0).toLocaleString(
+          full_name: profile.full_name || "User",
+          balance: parseFloat(profile.balance || 0).toLocaleString(
             undefined,
             { minimumFractionDigits: 2 }
           ),
-          cashback: parseFloat(session.user_data?.cashback || 0).toLocaleString(
+          cashback: parseFloat(profile.cashback || 0).toLocaleString(
             undefined,
             { minimumFractionDigits: 2 }
           ),
@@ -275,7 +278,7 @@ export default function FintechDashboard() {
             isDark={isDarkMode}
             label="Cable TV"
             color="bg-[#f9c4eb]"
-            icon="🛍️"
+            icon="📺"
           />
         </Link>
         <Link href={"./fund"}>
@@ -303,7 +306,6 @@ export default function FintechDashboard() {
           />
         </Link>
 
-        {/* New Services Added Here */}
         <Link href={"./smile"}>
           <ServiceItem
             isDark={isDarkMode}
@@ -329,7 +331,6 @@ export default function FintechDashboard() {
           />
         </Link>
 
-        {/* Suggest Product Section */}
         <div className="col-span-3 flex flex-col items-center mt-6 gap-4">
           <p
             className={`text-[11px] uppercase tracking-widest font-bold ${
@@ -350,7 +351,6 @@ export default function FintechDashboard() {
           </Button>
         </div>
 
-        {/* Floating Chat Button */}
         <div className="absolute right-4 -bottom-6 bg-emerald-500 p-4 rounded-2xl shadow-lg shadow-emerald-500/20 active:scale-90 transition-transform cursor-pointer">
           <MessageSquare className="w-6 h-6 text-white" />
         </div>
