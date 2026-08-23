@@ -1196,3 +1196,55 @@
 //     </div>
 //   );
 // }
+
+// name: Android Debug APK Build
+
+// on:
+//   push:
+//     branches: [main]
+//   workflow_dispatch:
+
+// jobs:
+//   android-debug:
+//     runs-on: ubuntu-latest
+//     timeout-minutes: 60
+
+//     steps:
+//       - name: Checkout Source
+//         uses: actions/checkout@v4
+
+//       - name: Setup Java
+//         uses: actions/setup-java@v4
+//         with:
+//           distribution: "zulu"
+//           java-version: "17"
+//           cache: "gradle"
+
+//       - name: Setup Node
+//         uses: actions/setup-node@v4
+//         with:
+//           node-version: "20"
+//           cache: "npm"
+
+//       - name: Install dependencies
+//         run: npm install
+
+//       - name: Build web app (Static Export)
+//         run: npm run build
+
+//       - name: Sync Capacitor
+//         run: npx cap sync android
+
+//       - name: Build Debug APK
+//         run: |
+//           cd android
+//           chmod +x gradlew
+//           # assembleDebug creates an APK that is auto-signed for testing
+//           bash ./gradlew assembleDebug
+
+//       - name: Upload Debug APK
+//         uses: actions/upload-artifact@v4
+//         with:
+//           name: pancity-debug-apk
+//           # Path points back to the debug folder
+//           path: android/app/build/outputs/apk/debug/*.apk
