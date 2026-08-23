@@ -1,5 +1,7 @@
 package com.fix.obills;
 
+import android.os.Bundle;
+import android.graphics.Color;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
