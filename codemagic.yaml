@@ -5,6 +5,9 @@ workflows:
     environment:
       node: 20
       java: 17
+    cache:
+      cache_paths:
+        - node_modules
     scripts:
       - name: Install dependencies
         script: |
@@ -21,7 +24,10 @@ workflows:
       - name: Build Android APK
         script: |
           cd android
-          ./gradlew assembleDebug
+          # Fix permission denied error
+          chmod +x gradlew
+          # Use bash to execute gradlew for extra reliability
+          bash ./gradlew assembleDebug
 
     artifacts:
       - android/app/build/outputs/**/*.apk

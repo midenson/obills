@@ -70,7 +70,7 @@ export function ElectricityProviderModal({ selected, onSelect, isDark }: any) {
           </DrawerTitle>
         </DrawerHeader>
         <div className="px-4 mt-2 space-y-1">
-          {discoProviders.map((p) => (
+          {discoProviders.map((p: any) => (
             <div
               key={p.id}
               onClick={() => onSelect(p)}

@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,102 +8,18 @@ import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { useRouter } from "next/navigation";
 import { ProviderModal } from "./CableProvider";
 
-const CABLE_PLANS: Record<string, any[]> = {
-  "2": [
-    {
-      id: "dstv-padi",
-      title: "DStv Padi",
-      price: "4,400",
-      duration: "1 Month",
-    },
-    {
-      id: "dstv-yanga",
-      title: "DStv Yanga",
-      price: "6,000",
-      duration: "1 Month",
-    },
-    {
-      id: "dstv-confam",
-      title: "DStv Confam",
-      price: "11,000",
-      duration: "1 Month",
-    },
-    {
-      id: "dstv-compact",
-      title: "DStv Compact",
-      price: "19,000",
-      duration: "1 Month",
-    },
-    {
-      id: "dstv-compact-plus",
-      title: "DStv Compact Plus",
-      price: "29,500",
-      duration: "1 Month",
-    },
-    {
-      id: "dstv-premium",
-      title: "DStv Premium",
-      price: "44,000",
-      duration: "1 Month",
-    },
-  ],
-  "1": [
-    { id: "72", title: "GOtv Smallie", price: "1,900", duration: "1 Month" },
-    { id: "73", title: "GOtv Jinja", price: "3,300", duration: "1 Month" },
-    { id: "74", title: "GOtv Jolli", price: "4,850", duration: "1 Month" },
-    { id: "75", title: "GOtv Max", price: "7,200", duration: "1 Month" },
-    { id: "76", title: "GOtv Supa", price: "9,600", duration: "1 Month" },
-    {
-      id: "gotv-supa-plus",
-      title: "GOtv Supa Plus",
-      price: "15,700",
-      duration: "1 Month",
-    },
-  ],
-  "3": [
-    {
-      id: "nova",
-      title: "StarTimes Nova",
-      price: "1,500",
-      duration: "1 Month",
-    },
-    {
-      id: "basic",
-      title: "StarTimes Basic",
-      price: "3,300",
-      duration: "1 Month",
-    },
-    {
-      id: "smart",
-      title: "StarTimes Smart",
-      price: "4,500",
-      duration: "1 Month",
-    },
-    {
-      id: "classic",
-      title: "StarTimes Classic",
-      price: "5,000",
-      duration: "1 Month",
-    },
-    {
-      id: "super",
-      title: "StarTimes Super",
-      price: "8,500",
-      duration: "1 Month",
-    },
-  ],
-};
-
 export default function BuyCablePage() {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [smartcard, setSmartcard] = useState("");
   const [balance, setBalance] = useState("0.00");
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingPlans, setIsFetchingPlans] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [allPlans, setAllPlans] = useState<any[]>([]);
 
   const [selectedProvider, setSelectedProvider] = useState({
     name: "DStv",
@@ -115,8 +32,6 @@ export default function BuyCablePage() {
     text: string;
   } | null>(null);
 
-  const availablePlans = CABLE_PLANS[selectedProvider.id] || [];
-
   // FIXED: Forces date to Africa/Lagos (UTC+1) to match backend
   const getHandshake = () => {
     const lagosTime = new Intl.DateTimeFormat("en-GB", {
@@ -126,10 +41,40 @@ export default function BuyCablePage() {
       day: "2-digit",
     }).format(new Date());
 
-    // Intl returns DD/MM/YYYY, we need YYYYMMDD
     const [d, m, y] = lagosTime.split("/");
     return `Token ${y}${m}${d}`;
   };
+
+  // FETCH PLANS FROM DATABASE
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await fetch(
+          "https://obills.com.ng/app/api/cabletv/plans/index.php",
+          {
+            headers: { Authorization: getHandshake() },
+          }
+        );
+        const result = await response.json();
+        if (result.status === "success") {
+          setAllPlans(result.plans || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch cable plans", err);
+      } finally {
+        setIsFetchingPlans(false);
+      }
+    };
+
+    fetchPlans();
+  }, []);
+
+  // Filter plans based on selected provider ID (1, 2, or 3)
+  const availablePlans = useMemo(() => {
+    return allPlans.filter(
+      (plan) => String(plan.cableprovider) === selectedProvider.id
+    );
+  }, [allPlans, selectedProvider.id]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("app_theme");
@@ -165,7 +110,20 @@ export default function BuyCablePage() {
         }
       );
 
-      const result = await response.json();
+      // 1. Get response as raw text to handle PHP warnings/HTML prepended
+      const rawText = await response.text();
+
+      // 2. Locate the first '{' to find where the JSON actually begins
+      const jsonStartIndex = rawText.indexOf("{");
+
+      if (jsonStartIndex === -1) {
+        throw new Error("No valid JSON found in server response");
+      }
+
+      // 3. Extract and parse only the JSON part
+      const cleanJson = rawText.substring(jsonStartIndex);
+      const result = JSON.parse(cleanJson);
+
       if (result.status === "success") {
         setIsVerified(true);
         setCustomerName(result.name || "Verified Customer");
@@ -179,6 +137,7 @@ export default function BuyCablePage() {
         await Haptics.notification({ type: NotificationType.Error });
       }
     } catch (err: any) {
+      console.error("Verification error bypass:", err);
       setMessage({
         type: "error",
         text: "Connection error. Please try again.",
@@ -208,10 +167,10 @@ export default function BuyCablePage() {
           },
           body: JSON.stringify({
             cablename: selectedProvider.id,
-            cableplan: selectedPlan.id,
+            cableplan: selectedPlan.planid, // Using planid from DB
             iucnumber: smartcard,
             user_phone: session.user_data?.phone || "",
-            amount: selectedPlan.price.replace(/,/g, ""),
+            amount: selectedPlan.price.toString().replace(/,/g, ""),
             ref: `CAB_${Date.now()}`,
           }),
         }
@@ -219,7 +178,9 @@ export default function BuyCablePage() {
 
       const result = await response.json();
       if (result.status === "success") {
-        const planPrice = parseFloat(selectedPlan.price.replace(/,/g, ""));
+        const planPrice = parseFloat(
+          selectedPlan.price.toString().replace(/,/g, "")
+        );
         const newBal = (parseFloat(balance) - planPrice).toFixed(2);
         setBalance(newBal);
 
@@ -365,33 +326,41 @@ export default function BuyCablePage() {
       </div>
 
       <div className="px-5 grid grid-cols-2 gap-4 mb-8">
-        {availablePlans.map((plan) => (
-          <div
-            key={plan.id}
-            onClick={() => setSelectedPlan(plan)}
-            className={`p-5 rounded-[2rem] border transition-all h-36 flex flex-col justify-between cursor-pointer active:scale-95 duration-300 ${
-              selectedPlan?.id === plan.id
-                ? "border-emerald-500 bg-emerald-500/5 ring-4 ring-emerald-500/10"
-                : isDarkMode
-                ? "bg-[#1c1425] border-white/5"
-                : "bg-white border-slate-100"
-            }`}
-          >
-            <div>
-              <h4
-                className={`font-bold text-xs line-clamp-2 leading-tight ${
-                  isDarkMode ? "text-zinc-100" : "text-slate-800"
-                }`}
-              >
-                {plan.title}
-              </h4>
-              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">
-                {plan.duration}
-              </span>
-            </div>
-            <p className="font-black text-xl tracking-tighter">₦{plan.price}</p>
+        {isFetchingPlans ? (
+          <div className="col-span-2 flex justify-center py-10">
+            <Loader2 className="animate-spin text-emerald-500" />
           </div>
-        ))}
+        ) : (
+          availablePlans.map((plan) => (
+            <div
+              key={plan.cpId || plan.planid}
+              onClick={() => setSelectedPlan(plan)}
+              className={`p-5 rounded-[2rem] border transition-all h-36 flex flex-col justify-between cursor-pointer active:scale-95 duration-300 ${
+                selectedPlan?.planid === plan.planid
+                  ? "border-emerald-500 bg-emerald-500/5 ring-4 ring-emerald-500/10"
+                  : isDarkMode
+                  ? "bg-[#1c1425] border-white/5"
+                  : "bg-white border-slate-100"
+              }`}
+            >
+              <div>
+                <h4
+                  className={`font-bold text-xs line-clamp-2 leading-tight ${
+                    isDarkMode ? "text-zinc-100" : "text-slate-800"
+                  }`}
+                >
+                  {plan.name}
+                </h4>
+                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-tighter">
+                  {plan.day} Days
+                </span>
+              </div>
+              <p className="font-black text-xl tracking-tighter">
+                ₦{plan.price}
+              </p>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="px-5 mt-auto">

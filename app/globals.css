@@ -124,3 +124,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* html,
+body {
+  overflow: hidden;
+  height: 100%;
+  position: fixed;
+  width: 100%;
+} */
+
+/* .min-h-screen {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+} */

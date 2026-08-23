@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import PasskeyBridge from "@/components/PasskeyBridge";
+import AppBackButtonHandler from "@/components/AppBack";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AppBackButtonHandler />
+        <PasskeyBridge>
+          {children}
+        </PasskeyBridge>
+        <Toaster position="top-center" />
       </body>
     </html>
   );
