@@ -1,52 +1,51 @@
-name: Build Signed Android AAB
+name: Android Debug APK Build
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  build-aab:
+  android-debug:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Set up Node.js (v22 LTS)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-
-      - name: Set up JDK 21 (Temurin)
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          distribution: "zulu"
+          java-version: "21"
+          cache: "gradle"
 
-      - name: Install Dependencies & Build Next.js Web App
-        run: |
-          npm ci
-          npm run build # Adjust this if your build script is named differently
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
 
-      - name: Sync Capacitor Android
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app (Static Export)
+        run: npm run build
+
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Decode Keystore
+      - name: Build Debug APK
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release-key.jks
+          cd android
+          chmod +x gradlew
+          # assembleDebug creates an APK that is auto-signed for testing
+          bash ./gradlew assembleDebug
 
-      - name: Build Signed Release App Bundle (AAB)
-        working-directory: ./android
-        run: |
-          ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file="$GITHUB_WORKSPACE/android/app/release-key.jks" \
-            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
-            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
-            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
-
-      - name: Upload Signed AAB Artifact
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          name: obills-debug-apk
+          # Path points back to the debug folder
+          path: android/app/build/outputs/apk/debug/*.apk
