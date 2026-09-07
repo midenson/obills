@@ -524,7 +524,7 @@ export default function BuyDataPage() {
             Select Data Type
           </h3>
           <div className="flex gap-2 w-full">
-            {["SME", "Gifting", "Corporate"].map((type) => {
+            {["SME", "Gifting", "Corporate", "sme2", "coupon"].map((type) => {
               const isSelected = selectedType?.toLowerCase() === type.toLowerCase();
               return (
                 <button
